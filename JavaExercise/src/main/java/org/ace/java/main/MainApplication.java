@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ace.java.cache.CacheMapImpl;
 import org.ace.java.cache.CleanerThread;
+import org.ace.java.fileTypes.DMTDFile;
 import org.ace.java.fileTypes.FileStatus;
 import org.ace.java.fileTypes.MTDFile;
 
@@ -46,9 +47,9 @@ public class MainApplication {
 	private static BlockingQueue<Path> newFiles;
 	
 	public MainApplication () {
-		this.paths =  new ArrayList<>();
-		this.cache = new CacheMapImpl();
-		this.newFiles = new LinkedBlockingQueue();
+		paths =  new ArrayList<>();
+		cache = new CacheMapImpl();
+		newFiles = new LinkedBlockingQueue<>();
 	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
@@ -57,13 +58,10 @@ public class MainApplication {
 		Path path = Paths.get(s);
 		
 		new MainApplication().listFiles(path);
+		
 		for (Path p : paths) {
 			cache.put(p.toFile(), FileStatus.NEW);
 		}
-		
-		Thread t1 = new Thread(new CleanerThread(10000, cache));
-		t1.setDaemon(true);
-		t1.start();
 		
 		countNewFiles (cache);
 		processAndCreateMTDFiles (newFiles, path);
@@ -80,28 +78,9 @@ public class MainApplication {
 	
 
 	private static void createDMTDFiles(Path path) {
-		System.out.println(getAllMTDFiles(path.toString()));
+		new DMTDFile(path.toString());
 	}
 	
-	public static List<File> getAllMTDFiles(String dir) {
-
-		List<File> mtdFile = new ArrayList<File>();
-
-		File directory = new File(dir);
-
-		File[] fList = directory.listFiles();
-
-		for (File file : fList) {
-			if (file.isFile()) {
-				if (file.getAbsolutePath().endsWith(".mtd")) {
-					mtdFile.add(file);
-				}
-			}
-		}
-
-		return mtdFile;
-
-	}
 
 	private static void processAndCreateMTDFiles(BlockingQueue<Path> files, Path path) throws InterruptedException {
 		
@@ -187,7 +166,11 @@ public class MainApplication {
 	private static void countNewFiles(CacheMapImpl cache2) {
 		for(Map.Entry<File, FileStatus> entry : cache.entrySet()) {
 			if (entry.getValue() == FileStatus.NEW) {
-				newFiles.add(entry.getKey().toPath());
+				try {
+					newFiles.put(entry.getKey().toPath());
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
