@@ -1,4 +1,4 @@
-package org.ace.java.fileTypes;
+package org.ace.java.cache;
 
 public enum FileStatus {
 
