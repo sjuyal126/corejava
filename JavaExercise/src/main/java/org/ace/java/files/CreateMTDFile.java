@@ -15,9 +15,8 @@ public class CreateMTDFile implements FileGenerator, Runnable{
 	private PrintWriter writer;
 	private CountDownLatch latch;
 	
-	public CreateMTDFile (File file, CountDownLatch latch) {
+	public CreateMTDFile (File file) {
 		this.file = file;
-		this.latch = latch;
 	}
 
 	@Override

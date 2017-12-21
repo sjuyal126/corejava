@@ -2,6 +2,7 @@ package org.ace.java;
 
 import java.io.File;
 
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,7 +15,9 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.ace.java.cache.CacheMapImpl;
+import org.ace.java.cache.CleanerThread;
 import org.ace.java.cache.FileStatus;
+import org.ace.java.files.CreateDMTDFile;
 
 public class TestApplication {
 	
@@ -39,14 +42,20 @@ public void poll(Path path) {
     ScheduledExecutorService executorService= Executors.newScheduledThreadPool(5);
     ScheduledFuture files = executorService.scheduleAtFixedRate(() -> {
     	
+    	Thread t1 = new Thread(new CleanerThread(60000, cache));
+    	t1.setDaemon(true);
+    	t1.start();
+    	
+    	
     	this.listFiles(path);
     	if (!newFiles.isEmpty()) {
-    		FileProcessor.process(newFiles, cache);
+    		FileProcessor.process(newFiles, cache, path);
     	}
     	
     }, 0, 10, TimeUnit.SECONDS);
 	
 }
+
 
 private List<File> listFiles(Path path) {
 	File folder = path.toFile();
@@ -55,7 +64,7 @@ private List<File> listFiles(Path path) {
 		if (file.isFile() && 
 				(file.getName().endsWith(".txt") || file.getName().endsWith(".csv"))) {
 				if (cache.size() > 0) {
-					if (cache.containsKey(file)) {
+					if (cache.containsKey(file) && cache.get(file) != FileStatus.PROCESSED) {
 						newFiles.remove(file);
 					}
 					else {
@@ -69,8 +78,6 @@ private List<File> listFiles(Path path) {
 				}
 		}
 	}
-	
 	return newFiles;
-	
 }
 }
